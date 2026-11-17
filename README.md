@@ -17,7 +17,7 @@ See them moving: **[novitckii.com/resources/animation-skills](https://novitckii.
 
 ### 5 animation styles (new)
 
-![The five styles, one frame each: low-poly, minecraft, zach-3d-films, kurzgesagt, dan-koe](docs/styles.jpg)
+![The five styles, one frame each: low-poly, minecraft, zach-3d-films, kurzgesagt, dan-koe](docs/five-styles.jpg)
 
 | Skill | What it makes | Try it with |
 |---|---|---|
