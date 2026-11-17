@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-time setup for the animation skills: checks ffmpeg and Node, installs three.js + Playwright into kit/node_modules,
 # fetches GSAP and warms up HyperFrames. Safe to run again.
-#   bash kit/setup.sh            # enough for /graph, /minimalistic-graphics, /map-route, /breakdown and the two engines' pictures
+#   bash kit/setup.sh            # enough for every quick skill and the two engines' pictures
 #   bash kit/setup.sh --voice    # also makes kit/.venv with the free voice (Kokoro) and word timings (Parakeet), ~1 GB of models
 set -euo pipefail
 KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

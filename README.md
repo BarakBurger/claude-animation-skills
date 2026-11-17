@@ -15,6 +15,20 @@ Skills for Claude Code that make animations for reels, with no footage needed. Y
 
 See them moving: **[novitckii.com/resources/animation-skills](https://novitckii.com/resources/animation-skills/)**
 
+### 5 animation styles (new)
+
+![The five styles, one frame each](docs/styles.jpg)
+
+| Skill | What it makes | Try it with |
+|---|---|---|
+| `/low-poly` | **PS1-era low-poly 3D.** Chunky pixels, wobbly vertices, dithering and small yellow captions. The built-in scene: a dog waits on a station platform, a train comes and goes, and he is still there in the snow. | `The dog who waited at the station for 10 years` |
+| `/minecraft` | **A blocky voxel build.** A cottage builds itself block by block on a grassy hill, the chimney slams in and the windows light up. Every texture is drawn in code. | `Build a tiny cottage block by block` |
+| `/zach-3d-films` | **The 3D cartoon explainer.** The same engine as `/zach-d-films`, under the name from the reel. | `Could ancient armour stop an arrow?` |
+| `/kurzgesagt` | **Flat-vector space.** Glowing planets with a dark crescent, twinkling stars and bright label tags. The built-in scene stacks every planet, to scale, between Earth and the Moon. | `Do all the planets fit between Earth and the Moon?` |
+| `/dan-koe` | **Black-and-white line art.** One dot grows into a hairline tree that splits in two at every step, and the tips light up. | `One choice, then the next` |
+
+See them moving: **[novitckii.com/resources/animation-styles](https://novitckii.com/resources/animation-styles/)**
+
 ## Install
 
 You need macOS or Linux with **ffmpeg**, **Node.js 18+** and **Python 3.9+**.
@@ -53,17 +67,21 @@ Open Claude Code anywhere and ask:
 /breakdown my phone, label it like a joke
 /stick-figure why did pirates wear eye patches?
 /zach-d-films could ancient armour stop an arrow? (my voiceover is ~/Downloads/vo.m4a)
+/low-poly the dog who waited at the station for 10 years
+/minecraft build a tiny cottage block by block
+/kurzgesagt do all the planets fit between Earth and the Moon?
+/dan-koe one choice, then the next
 ```
 
-**The four quick ones** (`/graph`, `/minimalistic-graphics`, `/map-route`, `/breakdown`) work from a small JSON spec. Claude writes `name.graph.json`, runs the skill's `build.py`, and you get `name.graph.mp4` (1080x1920, 30 fps) plus `name.graph.sheet.jpg`, a contact sheet with Instagram's safe area marked. The 2D ones render in about 10 seconds, the 3D ones in about 1.5 minutes.
+**The quick ones** (`/graph`, `/minimalistic-graphics`, `/map-route`, `/breakdown`, `/dan-koe`, `/kurzgesagt`, `/low-poly`, `/minecraft`) work from a small JSON spec. Claude writes `name.graph.json`, runs the skill's `build.py`, and you get `name.graph.mp4` (1080x1920, 30 fps) plus `name.graph.sheet.jpg`, a contact sheet with Instagram's safe area marked. The 2D ones render in about 10 seconds, the 3D ones in about 1.5 minutes.
 
-**The two engines** (`/stick-figure`, `/zach-d-films`) are full explainer reels. Claude copies the example project, writes the script with you, makes or takes the voiceover, times every caption to it, writes the shots in code, checks stills, and renders. Plan on a working session, not one command.
+**The two engines** (`/stick-figure`, `/zach-d-films`, also called `/zach-3d-films`) are full explainer reels. Claude copies the example project, writes the script with you, makes or takes the voiceover, times every caption to it, writes the shots in code, checks stills, and renders. Plan on a working session, not one command.
 
 ## How it's built
 
 ```
 skills/<name>/SKILL.md          what Claude follows: steps, the spec, taste rules
-skills/<name>/build.py          spec.json -> template.html -> HyperFrames -> mp4   (graph, minimalistic-graphics, map-route, breakdown)
+skills/<name>/build.py          spec.json -> template.html -> HyperFrames -> mp4   (all the quick skills)
 skills/<name>/template.html     the animation (GSAP, or three.js for the 3D ones)
 skills/stick-figure/engine/     canvas engine, voice + timing tools, make.sh, and the pirate reel as the template
 skills/zach-d-films/engine/     three.js engine (people, props, effects, renderer) and the armour short as the example
