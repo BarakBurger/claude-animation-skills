@@ -67,27 +67,57 @@ function buildFace(M, o) {
   for (const s of [1, -1]) head.add(sph(0.026, skin, [s * 0.132, -0.005, 0.01], [0.5, 1, 0.9]));
 
   // hair
+  // A full sphere round the head covers the eyes: at the eye plane its radius is still
+  // wider than the eye is high. So the top is a CAP that stops above the brow, and the
+  // back of the head gets its own piece.
   const hc = mat(o.hairCol ?? 'darkBrown', 0.9);
   const k = o.hair ?? 'crop';
-  if (k === 'buzz') head.add(sph(0.139, hc, [0, 0.014, -0.008], [1, 1.04, 0.96], 30));
-  else if (k === 'crop') {
-    head.add(sph(0.145, hc, [0, 0.026, -0.01], [1, 1.0, 0.98], 30));
-    head.add(sph(0.142, hc, [0, 0.01, -0.052], [1, 1.02, 0.9]));
+  const BROW_Y = 0.046;                                   // keep every cap above this
+  // thetaLength from the north pole, solved so the cap's rim lands at `stopY`
+  const capTo = (R, cy, stopY) => Math.acos(Math.max(-1, Math.min(1, (stopY - cy) / R)));
+  const hairCap = (R, cy, stopY, zoff = 0, sx = 1, sz = 1) => {
+    const th = capTo(R, cy, stopY);
+    const g = new THREE.SphereGeometry(R, 32, 20, 0, Math.PI * 2, 0, th);
+    const m = new THREE.Mesh(g, hc);
+    m.position.set(0, cy, zoff); m.scale.set(sx, 1, sz);
+    head.add(m); return m;
+  };
+  const napeBack = (R, cy, zoff, sy = 1) => {
+    const m = sph(R, hc, [0, cy, zoff], [1, sy, 1], 28);
+    head.add(m); return m;
+  };
+
+  if (k === 'buzz') {
+    hairCap(0.1385, 0.006, BROW_Y + 0.012, 0, 1, 0.99);
+    napeBack(0.128, -0.004, -0.044, 0.98);
+  } else if (k === 'crop') {
+    hairCap(0.1405, 0.010, BROW_Y + 0.016, 0, 1, 0.99);
+    napeBack(0.132, -0.012, -0.046, 1.0);
   } else if (k === 'quiff') {
-    head.add(sph(0.144, hc, [0, 0.03, -0.012], [1, 0.98, 0.98], 30));
-    head.add(sph(0.062, hc, [0, 0.142, 0.038], [1.25, 1.0, 0.9]));
+    hairCap(0.1405, 0.012, BROW_Y + 0.022, 0, 1, 0.99);
+    napeBack(0.131, -0.008, -0.046, 0.98);
+    head.add(sph(0.058, hc, [0, 0.142, 0.03], [1.3, 1.0, 0.85]));
   } else if (k === 'bun') {
-    head.add(sph(0.146, hc, [0, 0.024, -0.016], [1, 1.0, 0.98], 30));
-    head.add(sph(0.058, hc, [0, 0.118, -0.126]));
+    hairCap(0.1412, 0.010, BROW_Y + 0.016, 0, 1, 0.99);
+    napeBack(0.134, -0.012, -0.046, 1.02);
+    head.add(sph(0.058, hc, [0, 0.116, -0.124]));
   } else if (k === 'long') {
-    head.add(sph(0.148, hc, [0, 0.022, -0.018], [1, 1.0, 0.98], 30));
-    const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.115, 0.3, 6, 24), hc);
-    m.position.set(0, -0.19, -0.062); m.scale.set(1.05, 1, 0.62); head.add(m);
+    hairCap(0.1418, 0.010, BROW_Y + 0.014, 0, 1, 0.99);
+    napeBack(0.137, -0.014, -0.046, 1.04);
+    const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.118, 0.3, 6, 24), hc);
+    m.position.set(0, -0.19, -0.068); m.scale.set(1.05, 1, 0.6); head.add(m);
+    for (const s of [1, -1]) {                            // a lock either side of the face
+      const l = new THREE.Mesh(new THREE.CapsuleGeometry(0.036, 0.19, 5, 16), hc);
+      l.position.set(s * 0.116, -0.085, 0.022); l.scale.set(1, 1, 0.78); head.add(l);
+    }
   } else if (k === 'afro') {
-    head.add(sph(0.185, hc, [0, 0.042, -0.012], [1.04, 1, 1], 34));
-    for (let i = 0; i < 9; i++) {
-      const a = (i / 9) * Math.PI * 2;
-      head.add(sph(0.062, hc, [Math.cos(a) * 0.17, 0.05 + Math.sin(a) * 0.14, -0.02]));
+    hairCap(0.176, 0.026, BROW_Y + 0.020, -0.012, 1.04, 1);
+    napeBack(0.162, -0.006, -0.05, 1.0);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const y = 0.052 + Math.sin(a) * 0.13;
+      if (y < BROW_Y + 0.05 && Math.cos(a) * 0.17 > -0.02) continue;   // never in front of the face
+      head.add(sph(0.058, hc, [Math.cos(a) * 0.17, y, -0.03]));
     }
   }
   // beard
