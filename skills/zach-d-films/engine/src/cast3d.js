@@ -36,6 +36,21 @@ export const OUTFIT3_LIST = ['tee', 'shirt', 'hoodie', 'knit', 'suit', 'dress'];
 export const HAIR3_LIST = ['buzz', 'crop', 'quiff', 'bun', 'long', 'afro', 'none'];
 export const BEARD3_LIST = ['none', 'stubble', 'short', 'full'];
 
+// The same eight animals the 2D kit has, and for the same reason: an animal here
+// is a different HEAD on the same body, so a bear can wear a hoodie and hold a
+// phone with no new code. `ear` and `tail` pick the shapes; the rest are colours.
+export const ANIMAL3 = {
+  bear:      { fur: 0x8a6446, muz: 0xdcc3a3, earIn: 0xb2866a, nose: 0x2b2320, ear: 'round', tail: 'stub' },
+  panda:     { fur: 0xf5f2eb, muz: 0xf5f2eb, earIn: 0x120f0f, earCol: 0x1d1918, nose: 0x1d1918, ear: 'round', patch: 0x1d1918, tail: 'stub' },
+  lion:      { fur: 0xe3bc7c, muz: 0xf6ead2, earIn: 0xd8a9a0, nose: 0xbd6a64, ear: 'round', mane: 0xcf9c4e, whisk: 1, tail: 'tuft' },
+  whiteLion: { fur: 0xf2efe6, muz: 0xfcf9f3, earIn: 0xd9bbb4, nose: 0xc08079, ear: 'round', mane: 0xe4ddcd, whisk: 1, tail: 'tuft' },
+  tiger:     { fur: 0xe8a04a, muz: 0xf8eed8, earIn: 0x2a2320, nose: 0xc2706a, ear: 'round', whisk: 1, tail: 'long', stripes: 0x2a2320 },
+  whiteTiger:{ fur: 0xf4f1ea, muz: 0xfcfaf5, earIn: 0x2a2320, nose: 0xd58f93, ear: 'round', whisk: 1, tail: 'long', stripes: 0x262021, eyeCol: 0x3f86c8 },
+  dog:       { fur: 0xc2884e, muz: 0xebd8b8, earIn: 0x9a6c3e, nose: 0x2b2320, ear: 'flop', tongue: 1, tail: 'curl' },
+  cat:       { fur: 0x746e69, muz: 0xefe9e2, earIn: 0xd8a9a0, nose: 0xd4878a, ear: 'point', whisk: 1, tail: 'long' },
+};
+export const ANIMAL3_LIST = Object.keys(ANIMAL3);
+
 const col = c => (typeof c === 'string' ? (HAIRCOL3[c] ?? SKIN3[c] ?? parseInt(c.replace('#', ''), 16)) : c);
 const mat = (c, rough = 0.85, extra = {}) =>
   new THREE.MeshStandardMaterial({ color: col(c), roughness: rough, ...extra });
@@ -155,6 +170,78 @@ function buildFace(M, o) {
 }
 
 /** A person. Same option names as castFig in the 2D kit. */
+
+// An animal head, built to the same measurements as buildFace so every hat, pair
+// of glasses and piece of jewellery still lands where it should.
+function buildAnimalHead(M, o) {
+  const A = ANIMAL3[o.animal] ?? ANIMAL3.bear;
+  const head = new THREE.Group();
+  const furM = mat(o.furCol ?? A.fur, 0.95);
+  const muzM = mat(o.muzCol ?? A.muz, 0.9);
+  const darkM = mat(A.nose, 0.7);
+
+  head.add(sph(0.146, furM, [0, 0, 0], [1, 1.0, 0.98], 36));             // skull
+  const muz = sph(0.074, muzM, [0, -0.046, 0.1], [1.12, 0.82, 1.0], 28); // muzzle
+  head.add(muz);
+  head.add(sph(0.026, darkM, [0, -0.024, 0.166], [1.25, 0.8, 0.7]));     // nose
+  const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.008, 0.01), darkM);
+  mouth.position.set(0, -0.082, 0.146); head.add(mouth);
+  if (A.tongue) head.add(sph(0.026, mat(0xd4737f, 0.85), [0, -0.1, 0.135], [1, 0.45, 0.9]));
+
+  // the panda's eye patches go on BEFORE the eyes, or they bury them
+  if (A.patch) for (const s of [1, -1])
+    head.add(sph(0.044, mat(A.patch, 0.95), [s * 0.062, 0.022, 0.108], [1.0, 1.25, 0.45]));
+
+  for (const s of [1, -1]) {
+    head.add(sph(0.024, M.eyeWhite, [s * 0.058, 0.026, 0.115], [1, 1, 0.7]));
+    head.add(sph(0.012, mat(A.eyeCol ?? 0x2e241c, 0.2), [s * 0.06, 0.026, 0.13], [1, 1, 0.6]));
+  }
+
+  // ears
+  const earM = A.earCol ? mat(A.earCol, 0.95) : furM;
+  const inM = mat(A.earIn, 0.95);
+  for (const s of [1, -1]) {
+    if (A.ear === 'point') {
+      const c = new THREE.Mesh(new THREE.ConeGeometry(0.046, 0.1, 16), earM);
+      c.position.set(s * 0.098, 0.15, -0.004); c.rotation.z = -s * 0.22; head.add(c);
+      const ci = new THREE.Mesh(new THREE.ConeGeometry(0.026, 0.06, 14), inM);
+      ci.position.set(s * 0.1, 0.145, 0.016); ci.rotation.z = -s * 0.22; head.add(ci);
+    } else if (A.ear === 'flop') {
+      const e = new THREE.Mesh(new THREE.CapsuleGeometry(0.042, 0.1, 5, 16), earM);
+      e.position.set(s * 0.132, 0.03, -0.006); e.scale.set(1, 1, 0.5);
+      e.rotation.z = s * 0.22; head.add(e);
+    } else {
+      const e = sph(0.05, earM, [s * 0.118, 0.112, -0.008], [1, 1, 0.42], 22); head.add(e);
+      head.add(sph(0.03, inM, [s * 0.122, 0.112, 0.018], [1, 1, 0.3], 18));
+    }
+  }
+
+  if (A.mane) {                                    // a ring behind the face, never over it
+    const mn = mat(o.maneCol ?? A.mane, 0.98);
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2;
+      head.add(sph(0.062, mn, [Math.cos(a) * 0.168, Math.sin(a) * 0.168, -0.045], [1, 1, 0.65], 16));
+    }
+  }
+  if (A.stripes) {
+    const st = mat(A.stripes, 0.95);
+    for (let i = 0; i < 4; i++) for (const s of [1, -1]) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.052, 0.012), st);
+      b.position.set(s * (0.04 + i * 0.034), 0.1 - i * 0.012, -0.108 + i * 0.03);
+      b.rotation.z = s * 0.3; head.add(b);
+    }
+  }
+  if (A.whisk) {
+    const w = mat(0xf3ece2, 0.6);
+    for (const s of [1, -1]) for (let i = 0; i < 3; i++) {
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.002, 0.13, 5), w);
+      c.position.set(s * 0.082, -0.046 + i * 0.016, 0.116);
+      c.rotation.set(0, 0, s * (Math.PI / 2 - 0.2 + i * 0.16)); head.add(c);
+    }
+  }
+  return head;
+}
+
 export function makeFigure3D(opts = {}) {
   const o = opts;
   const B = BUILD3[o.build] ?? BUILD3.athletic;
@@ -214,7 +301,8 @@ export function makeFigure3D(opts = {}) {
   // neck and head
   const neck = new THREE.Group(); neck.position.y = 0.36; chest.add(neck);
   const nk = disc(0.05, 0.12, skinM); nk.position.y = 0.04; neck.add(nk);
-  const head = buildFace(M, o); head.position.y = 0.165; neck.add(head);
+  const head = o.animal ? buildAnimalHead(M, o) : buildFace(M, o);
+  head.position.y = 0.165; neck.add(head);
   j.neck = neck; j.head = head;
 
   const limbM = (suit || knit || hoodie || o.outfit === 'shirt') ? clothM : skinM;
@@ -241,6 +329,76 @@ export function makeFigure3D(opts = {}) {
   }
   root.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
 
+  // ---- the parts that make a character out of a body ----
+  // Named for what they are, a stole and pearls and a halo, not for a character
+  // type, because the same parts are a film star or a villain depending only on
+  // what the script has them doing.
+  if (o.wings) {
+    const wm = new THREE.MeshPhysicalMaterial({
+      color: col(o.wingCol ?? 0xfdfbf4), roughness: 0.75,
+      transparent: true, opacity: 0.94, side: THREE.DoubleSide });
+    // The first pass stacked these upward and they read as a white hoop over the
+    // head. A wing sweeps OUT and back from the shoulder blade, so the pieces run
+    // along local x and the group is turned, not the spheres.
+    for (const s of [1, -1]) {
+      const w = new THREE.Group(); w.position.set(s * 0.1, 0.3, -0.1); chest.add(w);
+      w.rotation.set(0, s * 0.62, s * 0.38);
+      [[0.17, 0.02, 0.15], [0.33, 0.07, 0.125], [0.46, 0.11, 0.09]].forEach(([x, y, r]) => {
+        w.add(sph(r, wm, [s * x, y, 0], [1.45, 1.0, 0.1], 20));
+      });
+    }
+  }
+  if (o.halo) {
+    const hm = new THREE.MeshStandardMaterial({
+      color: col(o.haloCol ?? 0xffd766), emissive: col(o.haloCol ?? 0xffd766),
+      emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.4 });
+    const h = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.014, 10, 32), hm);
+    h.rotation.x = Math.PI / 2; h.position.y = 0.37; head.add(h);
+  }
+  if (o.necklace) {
+    const nm = o.necklace === 'pearls'
+      ? new THREE.MeshPhysicalMaterial({ color: col(o.necklaceCol ?? 0xf6efe2), roughness: 0.12, clearcoat: 1 })
+      : new THREE.MeshStandardMaterial({ color: col(o.necklaceCol ?? 0xe8c15a), roughness: 0.25, metalness: 1 });
+    const n = o.necklace === 'pearls' ? 18 : 24;
+    for (let i = 0; i < n; i++) {
+      const a = Math.PI * 0.18 + (i / (n - 1)) * Math.PI * 0.64;
+      const bead = sph(o.necklace === 'pearls' ? 0.014 : 0.008, nm,
+        [Math.cos(a) * 0.088, 0.3 - Math.sin(a) * 0.03 - 0.02, 0.056 + Math.sin(a) * 0.016], [1, 1, 1], 12);
+      chest.add(bead);
+    }
+    if (o.necklace === 'pendant')
+      chest.add(sph(0.026, nm, [0, 0.232, 0.08], [1, 1.3, 0.5], 16));
+  }
+  if (o.earrings) {
+    const em = new THREE.MeshStandardMaterial({ color: col(o.earringCol ?? 0xe8c15a), roughness: 0.22, metalness: 1 });
+    for (const s of [1, -1]) {
+      if (o.earrings === 'hoop') {
+        const h = new THREE.Mesh(new THREE.TorusGeometry(0.021, 0.004, 8, 20), em);
+        h.position.set(s * 0.134, -0.044, 0.012); h.rotation.y = Math.PI / 2; head.add(h);
+      } else if (o.earrings === 'drop') {
+        head.add(sph(0.007, em, [s * 0.134, -0.024, 0.012], [1, 1, 1], 10));
+        head.add(sph(0.014, em, [s * 0.134, -0.056, 0.012], [1, 1.5, 1], 12));
+      } else {
+        head.add(sph(0.011, em, [s * 0.134, -0.03, 0.014], [1, 1, 1], 10));
+      }
+    }
+  }
+  if (o.fur) {                                      // a stole over the shoulders
+    const fm = mat(o.furStoleCol ?? 0xece5d6, 1);
+    for (let i = 0; i < 22; i++) {
+      const a = Math.PI * 0.08 + (i / 21) * Math.PI * 0.84;
+      chest.add(sph(0.046, fm, [Math.cos(a) * 0.17, 0.3 - Math.sin(a) * 0.012, -0.02 + Math.sin(a) * 0.09],
+        [1, 0.92, 1], 14));
+    }
+  }
+  if (o.watch && j.lWr) {
+    const bm = mat(0x2b2630, 0.6), fm = new THREE.MeshStandardMaterial({
+      color: col(o.watchCol ?? 0xe8c15a), roughness: 0.2, metalness: 1 });
+    const band = disc(0.044, 0.026, bm); band.rotation.x = Math.PI / 2; band.position.y = 0.01; j.lWr.add(band);
+    const face = disc(0.03, 0.012, fm); face.rotation.set(Math.PI / 2, 0, 0); face.position.set(0.03, 0.01, 0);
+    face.rotation.z = Math.PI / 2; j.lWr.add(face);
+  }
+
   // Same shape makeHuman returns, so a shot can drive either rig the same way.
   const fig = {
     root, j,
@@ -262,4 +420,88 @@ export function makeFigure3D(opts = {}) {
 export const STAND3 = {
   lSh: [0.05, 0, 0.16], rSh: [0.05, 0, -0.16], lEl: [-0.25, 0, 0], rEl: [-0.25, 0, 0],
   lHip: [0, 0, 0.07], rHip: [0, 0, -0.07], lAn: [0, 0, -0.07], rAn: [0, 0, 0.07],
+};
+
+
+// ---- four legs ----
+// A separate function, not an option, for the same reason the 2D kit keeps
+// petFig apart: a dog standing on two legs beside a person is a gag, not a pet.
+export function makePet3D(opts = {}) {
+  const o = opts;
+  const A = ANIMAL3[o.kind] ?? ANIMAL3.dog;
+  const furM = mat(o.furCol ?? A.fur, 0.95);
+  const muzM = mat(o.muzCol ?? A.muz, 0.9);
+  const darkM = mat(A.nose, 0.7);
+  const k = o.s ?? 1;
+  const root = new THREE.Group();
+  const body = new THREE.Group(); body.position.y = 0.34; root.add(body);
+
+  const barrel = new THREE.Mesh(new THREE.CapsuleGeometry(0.115, 0.24, 6, 20), furM);
+  barrel.rotation.z = Math.PI / 2; barrel.scale.set(1, 1, 0.92); body.add(barrel);
+  body.add(sph(0.1, furM, [-0.17, 0.01, 0], [1, 0.96, 0.94]));          // haunch
+  body.add(sph(0.092, furM, [0.15, 0.03, 0], [1, 0.94, 0.94]));         // chest
+
+  // head, forward and a little up
+  const head = new THREE.Group(); head.position.set(0.3, 0.13, 0); body.add(head);
+  head.add(sph(0.088, furM, [0, 0, 0], [1, 1, 0.96], 24));
+  head.add(sph(0.05, muzM, [0.072, -0.028, 0], [1.1, 0.78, 0.9], 20));
+  head.add(sph(0.018, darkM, [0.118, -0.018, 0], [0.9, 0.8, 1.1], 14));
+  for (const s of [1, -1]) {
+    head.add(sph(0.016, mat(0x2b2320, 0.2), [0.052, 0.022, s * 0.052], [0.8, 1, 1], 12));
+    if (A.ear === 'point') {
+      const c = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.062, 14), furM);
+      c.position.set(-0.012, 0.086, s * 0.052); c.rotation.x = -s * 0.2; head.add(c);
+    } else {
+      const e = new THREE.Mesh(new THREE.CapsuleGeometry(0.026, 0.056, 5, 14), furM);
+      e.position.set(-0.004, 0.028, s * 0.074); e.scale.set(0.7, 1, 1);
+      e.rotation.x = s * 0.3; head.add(e);
+    }
+  }
+  if (A.tongue) head.add(sph(0.018, mat(0xd4737f, 0.85), [0.118, -0.052, 0], [1, 0.4, 0.8], 12));
+
+  // Legs in two tones: the far pair darker, or the animal reads as a flat slab.
+  const farM = mat(o.furCol ?? A.fur, 0.95); farM.color.multiplyScalar(0.8);
+  for (const s of [1, -1]) for (const fx of [0.16, -0.14]) {
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.032, 0.2, 5, 14), s > 0 ? furM : farM);
+    leg.position.set(fx, -0.17, s * 0.072); body.add(leg);
+    const paw = sph(0.036, s > 0 ? furM : farM, [fx, -0.3, s * 0.072], [1, 0.7, 1.1], 14); body.add(paw);
+  }
+  // tail
+  if (A.tail === 'stub') body.add(sph(0.042, furM, [-0.26, 0.04, 0], [1, 1, 1], 14));
+  else if (A.tail === 'tuft') {
+    const tl = new THREE.Mesh(new THREE.CapsuleGeometry(0.016, 0.16, 5, 12), furM);
+    tl.position.set(-0.28, 0.08, 0); tl.rotation.z = -0.7; body.add(tl);
+    body.add(sph(0.044, mat(o.maneCol ?? A.mane ?? A.fur, 0.98), [-0.36, 0.16, 0], [1, 1, 1], 14));
+  } else {
+    const tl = new THREE.Mesh(new THREE.CapsuleGeometry(0.019, 0.2, 5, 12), furM);
+    tl.position.set(-0.3, 0.1, 0); tl.rotation.z = A.tail === 'curl' ? -1.25 : -0.55; body.add(tl);
+  }
+  root.scale.setScalar(k);
+  root.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+  return { root, body, head };
+}
+
+// ---- presets ----
+// Plain options objects, so override anything. The same three the 2D kit has,
+// plus the one the warnings reel kept rebuilding by hand.
+export const CUPID3 = {
+  build: 'petite', skin: 'fair', hair: 'quiff', hairCol: 'sand',
+  outfit: 'tee', cols: ['#f7f1e4', '#f7f1e4'], wings: true, halo: true,
+};
+export const RICH_MAN3 = {
+  build: 'broad', skin: 'tan', hair: 'crop', hairCol: 'grey', beard: 'short',
+  outfit: 'suit', cols: ['#23202a', '#c9a227'], glasses: 'shades', watch: true,
+  necklace: 'chain',
+};
+export const GLAM_WOMAN3 = {
+  build: 'curvy', skin: 'light', hair: 'long', hairCol: 'black',
+  outfit: 'dress', cols: ['#1d1a22', '#c9a227'], fur: true,
+  necklace: 'pearls', earrings: 'drop', glasses: 'shades',
+};
+// Named for a character type, against the rule above, because it is the one the
+// scripts keep asking for by name. It is GLAM_WOMAN3 with the gold turned up.
+export const GOLD_DIGGER3 = {
+  ...GLAM_WOMAN3, hairCol: 'platinum', cols: ['#b01a52', '#e8c15a'],
+  necklace: 'pearls', earrings: 'drop', watch: true, glasses: 'shades',
+  furStoleCol: '#f3ece0',
 };
